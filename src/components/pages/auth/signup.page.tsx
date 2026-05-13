@@ -15,6 +15,7 @@ import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as y from 'yup';
 import { toast } from 'sonner';
+import StorageData from '@/data/storage.data';
 
 const schema = y.object({
   Name: y.string().min(3).max(50).required(),
@@ -51,17 +52,20 @@ const SignUpPage = () => {
         name: values.Name,
         email: values.Email,
         password: values.Password,
-        redirectTo: `${window.location.origin}/auth/verify-email`,
       });
 
       toast.dismiss(loading);
-      if (result) {
+      if (result.success) {
         toast.success(
           'Account created! Please check your inbox to verify your email.'
         );
-        nav('/auth/sign-in');
+        sessionStorage.setItem(StorageData.SIGNUP_EMAIL, values.Email);
+        nav('/auth/verify-email');
       } else {
-        toast.error('Sign up failed. Please check your data and try again.');
+        toast.error(
+          result.message ??
+            'Sign up failed. Please check your data and try again.'
+        );
       }
     },
   });

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import { AuthError, type Session, type User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
@@ -9,7 +9,11 @@ interface SignUpPayload {
   email: string;
   password: string;
   name: string;
-  redirectTo?: string;
+}
+
+interface SignUpResult {
+  success: boolean;
+  message?: string;
 }
 
 type UserProfile = {
@@ -22,7 +26,7 @@ type AuthContextValue = {
   user: (User & { profile: UserProfile | null }) | null;
   session: Session | null;
   isLoading: boolean;
-  signUp: (payload: SignUpPayload) => Promise<boolean>;
+  signUp: (payload: SignUpPayload) => Promise<SignUpResult>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -73,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signUp = async (payload: SignUpPayload): Promise<boolean> => {
+  const signUp = async (payload: SignUpPayload): Promise<SignUpResult> => {
     setIsAuthenticating(true);
 
     try {
@@ -82,13 +86,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password: payload.password,
         options: {
           data: { name: payload.name },
-          emailRedirectTo: payload.redirectTo,
         },
       });
       if (error) throw error;
-      return true;
-    } catch {
-      return false;
+      return { success: true };
+    } catch (error: unknown) {
+      if (error instanceof AuthError)
+        return { success: false, message: error.message };
+      return { success: false };
     } finally {
       setIsAuthenticating(false);
     }
