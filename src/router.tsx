@@ -6,6 +6,7 @@ import MainPage from './components/pages/main/main.page';
 import NotFoundPage from './components/pages/notfound.page';
 import SignInPage from './components/pages/auth/signin.page';
 import SignUpPage from './components/pages/auth/signup.page';
+import VerifyPage from './components/pages/auth/verify.page';
 
 const routes: RouteObject[] = [
   {
@@ -29,6 +30,10 @@ const routes: RouteObject[] = [
       {
         path: 'sign-up',
         element: <SignUpPage />,
+      },
+      {
+        path: 'verify-email',
+        element: <VerifyPage />,
       },
     ],
   },

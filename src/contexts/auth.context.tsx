@@ -16,6 +16,16 @@ interface SignUpResult {
   message?: string;
 }
 
+interface VerifyPayload {
+  email: string;
+  token: string;
+}
+
+interface VerifyResult {
+  success: boolean;
+  message?: string;
+}
+
 type UserProfile = {
   name: string;
   email: string;
@@ -27,6 +37,7 @@ type AuthContextValue = {
   session: Session | null;
   isLoading: boolean;
   signUp: (payload: SignUpPayload) => Promise<SignUpResult>;
+  verify: (payload: VerifyPayload) => Promise<VerifyResult>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -76,6 +87,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const verify = async (payload: VerifyPayload): Promise<VerifyResult> => {
+    setIsAuthenticating(true);
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: payload.email,
+        token: payload.token,
+        type: 'email',
+      });
+      if (error) throw error;
+      return { success: true };
+    } catch (error: unknown) {
+      if (error instanceof AuthError)
+        return { success: false, message: error.message };
+      return { success: false };
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
 
   const signUp = async (payload: SignUpPayload): Promise<SignUpResult> => {
     setIsAuthenticating(true);
@@ -145,6 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     isLoading: isLoading || isAuthenticating,
     signUp,
+    verify,
     signInGoogle,
     signOut,
   };
