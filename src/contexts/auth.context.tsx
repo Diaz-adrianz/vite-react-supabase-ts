@@ -4,6 +4,14 @@ import type { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
+// payloads
+interface SignUpPayload {
+  email: string;
+  password: string;
+  name: string;
+  redirectTo?: string;
+}
+
 type UserProfile = {
   name: string;
   email: string;
@@ -14,6 +22,7 @@ type AuthContextValue = {
   user: (User & { profile: UserProfile | null }) | null;
   session: Session | null;
   isLoading: boolean;
+  signUp: (payload: SignUpPayload) => Promise<boolean>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -64,6 +73,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const signUp = async (payload: SignUpPayload): Promise<boolean> => {
+    setIsAuthenticating(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          data: { name: payload.name },
+          emailRedirectTo: payload.redirectTo,
+        },
+      });
+      if (error) throw error;
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   const signInGoogle = async () => {
     try {
       setIsAuthenticating(true);
@@ -109,6 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     session,
     isLoading: isLoading || isAuthenticating,
+    signUp,
     signInGoogle,
     signOut,
   };
