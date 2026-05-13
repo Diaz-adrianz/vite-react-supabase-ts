@@ -2,7 +2,7 @@ import { Button } from '@/components/atoms/button';
 import { useAuth } from '@/contexts/auth.context';
 import { Link, Navigate } from 'react-router-dom';
 import { IcGoogle } from '@/assets/images';
-import { Field, FieldLabel } from '@/components/atoms/field';
+import { Field, FieldError, FieldLabel } from '@/components/atoms/field';
 import { Input } from '@/components/atoms/input';
 import {
   InputGroup,
@@ -12,11 +12,46 @@ import {
 } from '@/components/atoms/input-group';
 import { useState } from 'react';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import * as y from 'yup';
+import { useFormik } from 'formik';
+import { toast } from 'sonner';
+
+const schema = y.object({
+  Email: y.string().email().required(),
+  Password: y.string().min(6).required(),
+});
+
+type Schema = y.InferType<typeof schema>;
 
 const SignInPage = () => {
-  const { signInGoogle, user } = useAuth();
+  const { signIn, signInGoogle, user } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
+
+  const form = useFormik<Schema>({
+    initialValues: {
+      Email: '',
+      Password: '',
+    },
+    validationSchema: schema,
+    async onSubmit(values) {
+      const loading = toast.loading('Signing you in...');
+
+      const result = await signIn({
+        email: values.Email,
+        password: values.Password,
+      });
+
+      toast.dismiss(loading);
+      if (result.success) {
+        toast.success('Welcome back!');
+      } else {
+        toast.error(
+          result.message ?? 'Invalid email or password. Please try again.'
+        );
+      }
+    },
+  });
 
   if (user) return <Navigate to={'/'} replace />;
 
@@ -40,10 +75,19 @@ const SignInPage = () => {
         <div className="bg-border h-px grow"></div>
       </div>
 
-      <form className="mt-8 flex flex-col gap-4">
+      <form onSubmit={form.handleSubmit} className="mt-8 flex flex-col gap-4">
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" placeholder="you@example.com" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            name="Email"
+            value={form.values.Email}
+            onChange={form.handleChange}
+            aria-invalid={!!form.errors.Email}
+          />
+          {form.errors.Email && <FieldError>{form.errors.Email}</FieldError>}
         </Field>
 
         <Field>
@@ -59,6 +103,10 @@ const SignInPage = () => {
               id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="Enter your password"
+              name="Password"
+              value={form.values.Password}
+              onChange={form.handleChange}
+              aria-invalid={!!form.errors.Password}
             />
             <InputGroupAddon align="inline-end">
               <InputGroupButton
@@ -70,9 +118,17 @@ const SignInPage = () => {
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
+          {form.errors.Password && (
+            <FieldError>{form.errors.Password}</FieldError>
+          )}
         </Field>
 
-        <Button type="submit" className="mt-4" size={'lg'}>
+        <Button
+          type="submit"
+          className="mt-4"
+          size={'lg'}
+          disabled={form.isSubmitting}
+        >
           Sign In
         </Button>
       </form>
